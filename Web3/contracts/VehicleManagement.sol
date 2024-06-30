@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 contract VehicleManagement {
     address public owner;
-    uint64 vehicleCount=0;
+    uint64 public vehicleCount = 0;
 
     struct Vehicle {
         uint256 vehicleId;
@@ -28,33 +28,47 @@ contract VehicleManagement {
     constructor() {
         owner = msg.sender;
     }
+
     function parseAndConvert(string memory input) public pure returns (uint256) {
         uint256 result;
-        assembly {
-            result := mload(add(input, 32))
+        for (uint256 i = 0; i < bytes(input).length; i++) {
+            result = result * 10 + (uint8(bytes(input)[i]) - 48);
         }
         return result;
     }
 
-    function addVehicle(string memory _vehicleId, uint16 phoneNum, string memory buyDate, string memory model, string memory plateNum, string memory insuranceValidity, string memory pollutionValidity) public {
-        vehicleCount+=1;
-        uint256 vehicleId=parseAndConvert(_vehicleId);
-        Vehicle memory newVehicle = Vehicle(vehicleId, phoneNum, buyDate, model, plateNum, insuranceValidity, pollutionValidity);
+    function addVehicle(
+        string memory _vehicleId,
+        uint64 phoneNum,
+        string memory buyDate,
+        string memory model,
+        string memory plateNum,
+        string memory insuranceValidity,
+        string memory pollutionValidity
+    ) public {
+        vehicleCount += 1;
+        uint256 vehicleId = parseAndConvert(_vehicleId);
+        Vehicle memory newVehicle = Vehicle({
+            vehicleId: vehicleId,
+            phoneNum: phoneNum,
+            buyDate: buyDate,
+            model: model,
+            plateNum: plateNum,
+            insuranceValidity: insuranceValidity,
+            pollutionValidity: pollutionValidity
+        });
 
         userVehicles[msg.sender].push(newVehicle);
         allVehicles[vehicleId] = newVehicle;
 
-        emit VehicleAdded(msg.sender, vehicleId, phoneNum, buyDate, model, plateNum, insuranceValidity, pollutionValidity );
+        emit VehicleAdded(msg.sender, vehicleId, phoneNum, buyDate, model, plateNum, insuranceValidity, pollutionValidity);
     }
 
-    function getUserVehicles(address _userAddress) public view returns (Vehicle[] memory) {
+    function getUserVehicles(address _userAddress) external view returns (Vehicle[] memory) {
         return userVehicles[_userAddress];
     }
 
-    function getVehicleDetails(uint256 _vehicleId) public view returns (Vehicle memory) {
+    function getVehicleDetails(uint256 _vehicleId) external view returns (Vehicle memory) {
         return allVehicles[_vehicleId];
-    }
-    function getVehicleCount() public view returns (uint64) {
-        return vehicleCount;
     }
 }

@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 contract ChallanManagement {
@@ -30,6 +29,8 @@ contract ChallanManagement {
         uint256 issueDate
     );
 
+    event ChallanPaid(address indexed payer, uint256 challanId, uint256 amount);
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Not the contract owner");
         _;
@@ -41,8 +42,8 @@ contract ChallanManagement {
 
     function parseAndConvert(string memory input) public pure returns (uint256) {
         uint256 result;
-        assembly {
-            result := mload(add(input, 32))
+        for (uint256 i = 0; i < bytes(input).length; i++) {
+            result = result * 10 + (uint8(bytes(input)[i]) - 48);
         }
         return result;
     }
@@ -60,21 +61,20 @@ contract ChallanManagement {
         uint256 __vehicleId = parseAndConvert(_vehicleId);
         uint256 __amount = parseAndConvert(_amount);
 
-        uint256 issueDate = timeCall();
+        Challan memory newChallan = Challan({
+            challanId: challanId,
+            vehicleId: __vehicleId,
+            amount: __amount,
+            paid: false,
+            reason: _reason,
+            issueDate: block.timestamp,
+            location: _location
+        });
 
-        Challan memory newChallan = Challan(
-            challanId,
-            __vehicleId,
-            __amount,
-            false,
-            _reason,
-            issueDate,
-            _location
-        );
         userChallanCount += 1;
 
         Challans[msg.sender].push(newChallan);
-        allChallans[challanId]=newChallan;
+        allChallans[challanId] = newChallan;
 
         emit ChallanIssued(
             msg.sender,
@@ -83,14 +83,9 @@ contract ChallanManagement {
             __amount,
             _reason,
             _location,
-            issueDate
+            block.timestamp
         );
     }
-
-    function timeCall() public view returns (uint256) {
-        return block.number;
-    }
-    event ChallanPaid(address indexed payer, uint256 challanId, uint256 amount);
 
     function payChallan(uint256 _challanId) public {
         Challan storage challan = allChallans[_challanId];
@@ -108,10 +103,9 @@ contract ChallanManagement {
     function getChallanDetails(
         uint256 _challanId
     ) public view returns (Challan memory) {
-        // uint256 challanId = parseAndConvert(_challanId);
         return allChallans[_challanId];
     }
-    
+
     function getUserChallanCount() public view returns (uint64) {
         return userChallanCount;
     }
